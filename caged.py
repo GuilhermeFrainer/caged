@@ -46,7 +46,6 @@ def make_chart(workbook):
 
     # Makes column chart with simple balance values
     column_chart = workbook.add_chart({'type': 'column'})
-    #column_chart.set_x_axis({'date_axis': True, 'num_format': 'mmm-yy', 'label_position': 'low'})
     column_chart.add_series({
         'categories': f'=Dados!$A$14:$A${total_entries + 1}',
         'values': f'=Dados!$D$14:$D${total_entries + 1}',
@@ -106,7 +105,7 @@ def caged_to_excel():
     total_entries = len(entries)
 
     # Writes into Excel file
-    workbook = Workbook('CAGED.xlsx')
+    workbook = Workbook('CAGED_py.xlsx')
     worksheet = workbook.add_worksheet('Dados')
 
     # Writes headers
