@@ -6,22 +6,37 @@ from math import isnan
 import requests
 import bs4
 import pandas as pd
-import datetime
+
+
+total_entries = None
 
 
 def main():
     pd.options.mode.chained_assignment = None # Disables annoying and useless warning
     #get_data()
-    workbook = caged_to_excel()
+    workbook, worksheet = caged_to_excel()
+    write_formulas(workbook, worksheet)
     #writer = caged_to_excel()
     #wb = writer.book
 
     workbook.close()
 
 
-# Arranges sheet to later make the chart
-def arrange_sheet(ws):
-    ...
+# Writes formulas whose values will later be used to make the chart
+def write_formulas(workbook, worksheet):
+    global total_entries
+    
+    # Writes headers
+    worksheet.write('C1', 'Acumulado 12 meses')
+    worksheet.write('D1', 'Saldo mil')
+    worksheet.write('E1', 'Acumulado 12 meses mil')
+    
+    # Writes formulas
+    number_format = workbook.add_format({'num_format': '#,##0.0'})
+    for i in range(total_entries):
+        worksheet.write_formula(f'C{i + 13}', f'=SUM(B{i + 2}:B{i + 13})')
+        worksheet.write_formula(f'D{i + 2}', f'=B{i + 2}/1000', number_format)
+        worksheet.write_formula(f'E{i + 2}', f'=C{i + 2}/1000', number_format)
 
 
 def make_chart(wb):
@@ -33,8 +48,10 @@ def make_chart(wb):
     chartsheet.set_chart(chart)
     
     
-# Extracts the necessary data from the caged sheet. Returns workbook.    
+# Extracts the necessary data from the caged sheet. Returns workbook and worksheet.    
 def caged_to_excel():
+    global total_entries
+    
     # Gets old data as list
     old_df = pd.read_excel('Tabela velho caged.xls', sheet_name='tabela10.1', header=5)
     old_balance, old_dates = old_df['Total das Atividades'].drop([84, 85]), old_df['Mês/ Ano'].drop([84, 85])
@@ -60,6 +77,9 @@ def caged_to_excel():
 
         entries.append(Data(dates[i], balance[i]))
 
+    # Saves global variable
+    total_entries = len(entries)
+
     # Writes into Excel file
     workbook = Workbook('Saldo.xlsx')
     worksheet = workbook.add_worksheet('Dados')
@@ -70,11 +90,11 @@ def caged_to_excel():
 
     # Writes data
     date_format = workbook.add_format({'num_format': 'mmm-yy'})
-    for i in range(len(entries)):
+    for i in range(total_entries):
         worksheet.write_datetime(i + 1, 0, entries[i].date, date_format)
         worksheet.write(i + 1, 1, entries[i].value)
 
-    return workbook
+    return workbook, worksheet
         
 
 # Gets the Excel files from the CAGED website
