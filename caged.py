@@ -3,6 +3,7 @@ from xlsxwriter import Workbook
 from urllib.request import urlretrieve
 from data import Data
 from math import isnan
+from chart_config import *
 import requests
 import bs4
 import pandas as pd
@@ -13,11 +14,10 @@ total_entries = None
 
 def main():
     pd.options.mode.chained_assignment = None # Disables annoying and useless warning
-    #get_data()
+    get_data()
     workbook, worksheet = caged_to_excel()
     write_formulas(workbook, worksheet)
-    #writer = caged_to_excel()
-    #wb = writer.book
+    make_chart(workbook)
 
     workbook.close()
 
@@ -39,13 +39,38 @@ def write_formulas(workbook, worksheet):
         worksheet.write_formula(f'E{i + 2}', f'=C{i + 2}/1000', number_format)
 
 
-def make_chart(wb):
-    chartsheet = wb.add_chartsheet('Gráfico')
+def make_chart(workbook):
+    global total_entries
 
-    chart = wb.add_chart({'type': 'line'})
-    chart.set_x_axis({'values': '=Dados!$A$2:A$29', 'date_axis': True, 'label_position': 'low'})
-    chart.add_series({'values': '=Dados!$B$2:B$29'})
-    chartsheet.set_chart(chart)
+    chartsheet = workbook.add_chartsheet('Gráfico')
+
+    # Makes column chart with simple balance values
+    column_chart = workbook.add_chart({'type': 'column'})
+    #column_chart.set_x_axis({'date_axis': True, 'num_format': 'mmm-yy', 'label_position': 'low'})
+    column_chart.add_series({
+        'categories': f'=Dados!$A$14:$A${total_entries + 1}',
+        'values': f'=Dados!$D$14:$D${total_entries + 1}',
+        'name': 'Saldo Mensal'
+    })
+    
+    # Makes line chart with accumulated values
+    line_chart = workbook.add_chart({'type': 'line'})
+    line_chart.add_series({
+        'categories': f'=Dados!$A$14:$A${total_entries + 1}',
+        'values': f'=Dados!$E$14:$E${total_entries + 1}',
+        'name': 'Acumulado 12 Meses',
+        'y2_axis': True
+    })
+
+    line_chart.set_y2_axis(y2_axis_config)
+
+    # Combines and outputs the two
+    column_chart.combine(line_chart)
+    column_chart.set_x_axis(x_axis_config)
+    column_chart.set_y_axis(y_axis_config)
+    column_chart.set_legend(legend_config)
+
+    chartsheet.set_chart(column_chart)
     
     
 # Extracts the necessary data from the caged sheet. Returns workbook and worksheet.    
@@ -81,7 +106,7 @@ def caged_to_excel():
     total_entries = len(entries)
 
     # Writes into Excel file
-    workbook = Workbook('Saldo.xlsx')
+    workbook = Workbook('CAGED.xlsx')
     worksheet = workbook.add_worksheet('Dados')
 
     # Writes headers
