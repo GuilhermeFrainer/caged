@@ -13,11 +13,11 @@ total_entries = None
 
 
 def main():
-    pd.options.mode.chained_assignment = None # Disables annoying and useless warning
     get_data()
     workbook, worksheet = caged_to_excel()
     write_formulas(workbook, worksheet)
     make_chart(workbook)
+    credits(workbook)
 
     workbook.close()
 
@@ -135,6 +135,18 @@ def get_data():
     new_link = f'http://pdet.mte.gov.br{new_link}'
     urlretrieve(new_link, 'Tabela caged.xlsx')
     print("Successfully downloaded file")
+
+
+# Writes sheet with sources and link to this code
+def credits(workbook):
+    worksheet = workbook.add_worksheet('Informações')
+
+    worksheet.write('A1', 'Tabela feita automaticamente em Python. Código em:')
+    worksheet.write('A2', 'https://github.com/GuilhermeFrainer/caged')
+    worksheet.write('A3', 'Fonte dos dados de antes de 2020:')
+    worksheet.write('A4', 'http://pdet.mte.gov.br/caged?view=default%20-%20Tabelas%20-%20Tabela%202')
+    worksheet.write('A5', 'Fonte dos dados de 2020 em diante:')
+    worksheet.write('A6', 'http://pdet.mte.gov.br/novo-caged?view=default')
 
 
 if __name__ == '__main__':
