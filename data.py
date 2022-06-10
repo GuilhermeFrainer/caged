@@ -24,3 +24,12 @@ class Data:
             month = months[month]
             date = datetime.date.fromisoformat(f'{year}-{month:02d}-01')
             self._date = date
+
+    @property
+    def value(self):
+        return self._value
+
+    # Not checking anything for now cause it doesn't seem necessary
+    @value.setter
+    def value(self, value):
+        self._value = value
