@@ -1,20 +1,22 @@
 from calendar import month
+from xlsxwriter import Workbook
+from urllib.request import urlretrieve
+from data import Data
+from math import isnan
 import requests
 import bs4
-from urllib.request import urlretrieve
 import pandas as pd
-from xlsxwriter import Workbook
 import datetime
 
 
 def main():
     pd.options.mode.chained_assignment = None # Disables annoying and useless warning
     #get_data()
-    caged_to_excel()
+    workbook = caged_to_excel()
     #writer = caged_to_excel()
     #wb = writer.book
 
-    #writer.save()
+    workbook.close()
 
 
 # Arranges sheet to later make the chart
@@ -32,68 +34,48 @@ def make_chart(wb):
     
     
 # Extracts the necessary data from the caged sheet. Returns workbook.    
-"""""""""
-
 def caged_to_excel():
-    # Gets old data
+    # Gets old data as list
     old_df = pd.read_excel('Tabela velho caged.xls', sheet_name='tabela10.1', header=5)
     old_balance, old_dates = old_df['Total das Atividades'].drop([84, 85]), old_df['Mês/ Ano'].drop([84, 85])
-    old_df = pd.concat([old_dates, old_balance], axis=1)
-    old_df = old_df.rename(columns={'Total das Atividades': 'Saldos', 'Mês/ Ano': 'Mês'})
-    print(old_df)
+    old_balance, old_dates = old_balance.to_list(), old_dates.to_list()
 
-    # Gets newer data
+    # Gets newer data as list
     new_df = pd.read_excel('tabela caged.xlsx', sheet_name='Tabela 5.1', header=4)
     new_balance, new_dates = new_df['Saldos'], new_df['Mês']
-    new_df = pd.concat([new_dates, new_balance], axis=1)
+    new_balance, new_dates = new_balance.to_list(), new_dates.to_list()
 
-    # Merges them into the same DataFrame
-    df = pd.concat([old_df, new_df], axis=0)
-    writer = pd.ExcelWriter('Saldo caged.xlsx', engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='Dados')
-    writer.save()
-"""""""""
-def caged_to_excel():
-    # Gets old data
-    old_df = pd.read_excel('Tabela velho caged.xls', sheet_name='tabela10.1', header=5)
-    old_balance, old_dates = old_df['Total das Atividades'].drop([84, 85]), old_df['Mês/ Ano'].drop([84, 85])
-    old_dates = old_dates.to_list()
-
-    # Gets newer data
-    new_df = pd.read_excel('tabela caged.xlsx', sheet_name='Tabela 5.1', header=4)
-    new_balance, new_dates = new_df['Saldos'], new_df['Mês']
-    new_dates = date_converter(new_dates.to_list())
-
-    # Merges them into the same DataFrame
+    # Merges them into the same list
+    balance = old_balance + new_balance
     dates = old_dates + new_dates
-    df = pd.concat([old_balance, new_balance], axis=0)
-    print(df)
+    entries = []
 
-
-# Converts list of date strings into list of datetime objects to write into file more easily 
-def date_converter(list):
-    for item in list:
+    for i in range(len(balance)):
+        
         try:
-            item = datetime.datetime.fromisoformat(month_converter(item))
+            if isnan(dates[i]) or isnan(balance[i]):
+                break
+        except TypeError:
+            pass
 
-        except:
-            item = 0
+        entries.append(Data(dates[i], balance[i]))
 
-    return list
+    # Writes into Excel file
+    workbook = Workbook('Saldo.xlsx')
+    worksheet = workbook.add_worksheet('Dados')
 
+    # Writes headers
+    worksheet.write('A1', 'Mês')
+    worksheet.write('B1', 'Saldo')
 
-# Converts months to ISO 8601 dates    
-def month_converter(date):
-    months = {'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12}
-    
-    try:
-        month, year = date.split("/")
-        month = months[month]
-        return f'{year}-{month:02d}-01'
+    # Writes data
+    date_format = workbook.add_format({'num_format': 'mmm-yy'})
+    for i in range(len(entries)):
+        worksheet.write_datetime(i + 1, 0, entries[i].date, date_format)
+        worksheet.write(i + 1, 1, entries[i].value)
 
-    except:
-        return 0    
-
+    return workbook
+        
 
 # Gets the Excel files from the CAGED website
 def get_data():    
